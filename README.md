@@ -25,8 +25,23 @@ so progressive overload is right in front of you.
   (5 lb vs 2.5 kg jumps). It changes the display label going forward; it doesn't
   convert past numbers, so pick your unit once.
 - **History & progress chart** — on any exercise, tap the 📈 button (top-right) to
-  see a line chart of your top-set weight over time (with all-time gain), plus every
-  past session broken out set-by-set with total volume. Delete any session from there.
+  see your **heaviest set** and **estimated 1-rep-max**, a line chart of your top-set
+  weight over time (with all-time gain), plus every past session broken out
+  set-by-set with total volume. Delete any session from there.
+- **Personal records** — beat your best estimated 1RM and you get a 🏆 **New PR!**
+  toast when you finish, and a trophy on the record-setting set.
+- **Edit anything** — tap a logged set to fix its weight/reps; in **Edit** mode
+  (top-right of the exercises list) rename, reorder, or delete exercises.
+- **Exercise suggestions** — start typing and Lift suggests ~60 common lifts so you
+  don't hand-type every name.
+- **Routines / workout days** — the **Routines** tab lets you group exercises into
+  days like "Push", "Pull", "Legs". Open a day and work through its exercises in
+  order; finishing one drops you back into the day for the next.
+- **Rest timer that behaves** — keeps the screen awake while it counts down, and
+  (if you allow notifications) buzzes you even if you've switched apps.
+- **Backup & restore** — the ⚙︎ settings sheet has **Export** (downloads all your
+  data as a `.json` file) and **Import** (restore it, or move to a new phone). Also
+  set your default rest time there.
 
 ## Use it on your phone
 
@@ -56,6 +71,7 @@ Or run locally: `python3 -m http.server` then open `http://localhost:8000`.
 
 ## Notes
 
-- Data lives in your browser only. Clearing site data / browser data wipes your log.
-- Default unit is **lb** and default rest is **90s** (easy to change in the code:
-  `settings.unit` / `settings.rest` near the top of the script).
+- Data lives in your browser only. Clearing site data / browser data wipes your log —
+  so **Export a backup now and then** from the ⚙︎ settings sheet.
+- Defaults are **lb** and **90s** rest; change the unit with the header chip and the
+  rest time in settings.
