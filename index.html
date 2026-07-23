@@ -244,6 +244,58 @@
   }
   .toast.show{opacity:1;transform:translate(-50%,0);}
 
+  /* ---- Unit chip / header buttons ---- */
+  .chip{
+    background:var(--surface);border:1px solid var(--line);border-radius:11px;
+    padding:8px 12px;font-size:14px;font-weight:750;letter-spacing:-.01em;color:var(--text);
+    display:flex;align-items:center;gap:6px;
+  }
+  .chip:active{background:var(--surface-2);}
+  .chip .on{color:var(--accent);}
+  .chip .off{color:var(--faint);}
+  .icon-btn{
+    width:38px;height:38px;border-radius:11px;background:var(--surface);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;color:var(--text);
+  }
+  .icon-btn:active{background:var(--surface-2);}
+  .icon-btn svg{width:19px;height:19px;}
+
+  /* ---- History / chart ---- */
+  .chart-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 16px 12px;margin-bottom:20px;
+  }
+  .chart-head{display:flex;justify-content:space-between;align-items:baseline;margin:0 4px 12px;}
+  .chart-head .lab{font-size:12px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;}
+  .chart-head .delta{font-size:13px;font-weight:700;}
+  .chart-head .delta.up{color:var(--good);}
+  .chart-head .delta.down{color:var(--warn);}
+  .chart-head .delta.flat{color:var(--muted);}
+  .chart svg{width:100%;height:150px;display:block;overflow:visible;}
+  .chart .grid{stroke:var(--line);stroke-width:1;}
+  .chart .area{fill:url(#grad);}
+  .chart .line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;}
+  .chart .dot{fill:var(--bg);stroke:var(--accent);stroke-width:2.5;}
+  .chart .dot-last{fill:var(--accent);}
+  .chart .yl{fill:var(--faint);font-size:10px;font-weight:600;}
+  .chart .xl{fill:var(--faint);font-size:10px;}
+
+  .hist-item{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:14px 16px;margin-bottom:10px;
+  }
+  .hist-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .hist-date{font-size:15px;font-weight:700;letter-spacing:-.01em;}
+  .hist-meta{font-size:12px;color:var(--faint);}
+  .hist-sets{display:flex;flex-wrap:wrap;gap:7px;}
+  .hist-set{
+    background:var(--surface-2);border-radius:9px;padding:6px 10px;font-size:13px;font-weight:650;
+    color:var(--text);
+  }
+  .hist-set .x{color:var(--faint);font-weight:500;margin:0 3px;}
+  .hist-del{color:var(--faint);font-size:13px;font-weight:650;padding:4px 6px;}
+  .hist-del:active{color:var(--warn);}
+
   .hidden{display:none!important;}
 </style>
 </head>
@@ -258,6 +310,10 @@
           <div class="title">Lift</div>
           <div class="subtitle" id="home-sub">Your workout log</div>
         </div>
+        <div class="spacer"></div>
+        <button class="chip" id="unit-toggle" aria-label="Toggle weight unit">
+          <span id="u-lb">lb</span><span style="color:var(--line)">/</span><span id="u-kg">kg</span>
+        </button>
       </div>
     </header>
     <main>
@@ -286,6 +342,9 @@
           Exercises
         </button>
         <div class="spacer"></div>
+        <button class="icon-btn" id="w-history" aria-label="View history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+        </button>
       </div>
       <div class="title" id="w-name" style="margin-top:10px;"></div>
       <div class="subtitle" id="w-sub"></div>
@@ -322,6 +381,26 @@
         <button class="btn good hidden" id="finish" style="flex:0 0 auto;padding-left:22px;padding-right:22px;">Finish</button>
       </div>
     </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="history" class="hidden">
+    <header>
+      <div class="head-row">
+        <button class="back" id="h-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          Back
+        </button>
+        <div class="spacer"></div>
+      </div>
+      <div class="title" id="h-name" style="margin-top:10px;"></div>
+      <div class="subtitle" id="h-sub"></div>
+    </header>
+    <main>
+      <div id="h-chart-wrap"></div>
+      <div class="section-label">Sessions</div>
+      <div id="h-list"></div>
+    </main>
   </div>
 
   <!-- REST TIMER -->
@@ -388,6 +467,18 @@
   /* ---------- Helpers ---------- */
   const unit = () => data.settings.unit;
   function fmtWeight(w){ return (Math.round(w*100)/100).toString(); }
+  function renderUnitChip(){
+    const kg = data.settings.unit === "kg";
+    $("u-lb").className = kg ? "off" : "on";
+    $("u-kg").className = kg ? "on" : "off";
+  }
+  function toggleUnit(){
+    data.settings.unit = data.settings.unit === "kg" ? "lb" : "kg";
+    save();
+    renderUnitChip();
+    renderHome($("search").value);
+    toast("Showing weights in " + data.settings.unit);
+  }
   function lastSession(ex){
     return (ex.history && ex.history.length) ? ex.history[ex.history.length-1] : null;
   }
@@ -558,6 +649,7 @@
     stopRest();
     current = null; session = [];
     workoutEl.classList.add("hidden");
+    $("history").classList.add("hidden");
     homeEl.classList.remove("hidden");
     $("search").value = "";
     renderHome("");
@@ -631,6 +723,102 @@
     },1000);
   }
 
+  /* ---------- History + chart ---------- */
+  function openHistory(){
+    if(!current) return;
+    const hist = (current.history || []).slice();
+    if(hist.length === 0){ toast("No history yet — log a workout first"); return; }
+    workoutEl.classList.add("hidden");
+    $("history").classList.remove("hidden");
+    window.scrollTo(0,0);
+    $("h-name").textContent = current.name;
+    $("h-sub").textContent = hist.length + " session" + (hist.length>1?"s":"") + " logged";
+
+    // chart of best-set weight per session (chronological)
+    const pts = hist.map(s => ({ t:s.date, w: bestSet(s).weight }));
+    $("h-chart-wrap").innerHTML = pts.length >= 2 ? chartHTML(pts) : "";
+
+    // sessions, newest first
+    const list = $("h-list");
+    list.innerHTML = "";
+    hist.slice().reverse().forEach((s)=>{
+      const realIdx = current.history.indexOf(s);
+      const item = document.createElement("div");
+      item.className = "hist-item";
+      const vol = s.sets.reduce((a,b)=>a + b.weight*b.reps, 0);
+      const setsHtml = s.sets.map(x =>
+        '<div class="hist-set">'+fmtWeight(x.weight)+'<span class="x">×</span>'+x.reps+'</div>'
+      ).join("");
+      item.innerHTML =
+        '<div class="hist-top"><div class="hist-date">'+relDate(s.date)+
+        ' <span class="hist-meta">· '+new Date(s.date).toLocaleDateString(undefined,{weekday:"short"})+'</span></div>'+
+        '<div class="hist-meta">'+fmtWeight(vol)+' '+unit()+' volume · <button class="hist-del" data-i="'+realIdx+'">Delete</button></div></div>'+
+        '<div class="hist-sets">'+setsHtml+'</div>';
+      list.appendChild(item);
+    });
+    list.querySelectorAll(".hist-del").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        if(!confirm("Delete this session permanently?")) return;
+        current.history.splice(+b.dataset.i,1);
+        save();
+        openHistory(); // re-render
+      });
+    });
+  }
+
+  function chartHTML(pts){
+    const W = 320, H = 150, padL = 30, padR = 8, padT = 12, padB = 22;
+    const iw = W - padL - padR, ih = H - padT - padB;
+    const ws = pts.map(p=>p.w);
+    let min = Math.min(...ws), max = Math.max(...ws);
+    if(min === max){ min -= 1; max += 1; }
+    const pad = (max-min)*0.15; min -= pad; max += pad;
+    const x = i => padL + (pts.length===1 ? iw/2 : (i/(pts.length-1))*iw);
+    const y = w => padT + ih - ((w-min)/(max-min))*ih;
+
+    let line = "", area = "M"+x(0)+" "+(padT+ih);
+    pts.forEach((p,i)=>{ line += (i?"L":"M")+x(i).toFixed(1)+" "+y(p.w).toFixed(1)+" "; area += "L"+x(i).toFixed(1)+" "+y(p.w).toFixed(1)+" "; });
+    area += "L"+x(pts.length-1)+" "+(padT+ih)+" Z";
+
+    // y gridlines (min/mid/max)
+    let grid = "", ylabels = "";
+    [0,0.5,1].forEach(f=>{
+      const val = min + (max-min)*(1-f);
+      const yy = padT + ih*f;
+      grid += '<line class="grid" x1="'+padL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+yy.toFixed(1)+'"/>';
+      ylabels += '<text class="yl" x="'+(padL-6)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+fmtWeight(val)+'</text>';
+    });
+
+    // dots + x labels (first & last)
+    let dots = "";
+    pts.forEach((p,i)=>{
+      const cls = i===pts.length-1 ? "dot dot-last" : "dot";
+      dots += '<circle class="'+cls+'" cx="'+x(i).toFixed(1)+'" cy="'+y(p.w).toFixed(1)+'" r="'+(i===pts.length-1?4.5:3.5)+'"/>';
+    });
+    const xFirst = '<text class="xl" x="'+x(0)+'" y="'+(H-6)+'" text-anchor="start">'+relDate(pts[0].t)+'</text>';
+    const xLast = '<text class="xl" x="'+x(pts.length-1)+'" y="'+(H-6)+'" text-anchor="end">'+relDate(pts[pts.length-1].t)+'</text>';
+
+    const first = pts[0].w, last = pts[pts.length-1].w, diff = last - first;
+    const dCls = diff>0 ? "up" : diff<0 ? "down" : "flat";
+    const dTxt = (diff>0?"↑ +":diff<0?"↓ ":"→ ") + fmtWeight(Math.abs(diff)) + " " + unit() + (diff!==0?" all-time":" no change");
+
+    return '<div class="chart-card">'+
+      '<div class="chart-head"><span class="lab">Top set · '+unit()+'</span><span class="delta '+dCls+'">'+dTxt+'</span></div>'+
+      '<div class="chart"><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
+      '<defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">'+
+      '<stop offset="0" stop-color="#5b8cff" stop-opacity="0.28"/><stop offset="1" stop-color="#5b8cff" stop-opacity="0"/></linearGradient></defs>'+
+      grid + ylabels +
+      '<path class="area" d="'+area+'"/><path class="line" d="'+line+'"/>'+
+      dots + xFirst + xLast +
+      '</svg></div></div>';
+  }
+
+  function closeHistory(){
+    $("history").classList.add("hidden");
+    workoutEl.classList.remove("hidden");
+    window.scrollTo(0,0);
+  }
+
   /* ---------- Modal ---------- */
   function openModal(){
     $("new-name").value = "";
@@ -675,6 +863,10 @@
 
   $("in-reps").addEventListener("keydown", e=>{ if(e.key==="Enter") logSet(); });
 
+  $("unit-toggle").addEventListener("click", toggleUnit);
+  $("w-history").addEventListener("click", openHistory);
+  $("h-back").addEventListener("click", closeHistory);
+
   $("rest-skip").addEventListener("click", stopRest);
   $("rest").addEventListener("click", e=>{ if(e.target===$("rest")) stopRest(); });
   document.querySelectorAll("[data-rest]").forEach(b=>{
@@ -682,6 +874,7 @@
   });
 
   /* ---------- Init ---------- */
+  renderUnitChip();
   renderHome("");
 })();
 </script>

@@ -19,6 +19,15 @@ No account. No backend. Everything is stored **on your phone** in the browser
 Each set you log shows what you did on that same set number last time (*"was 135×8"*),
 so progressive overload is right in front of you.
 
+## Extras
+
+- **Units** — tap the **lb/kg** chip in the top-right to switch. Steppers adapt
+  (5 lb vs 2.5 kg jumps). It changes the display label going forward; it doesn't
+  convert past numbers, so pick your unit once.
+- **History & progress chart** — on any exercise, tap the 📈 button (top-right) to
+  see a line chart of your top-set weight over time (with all-time gain), plus every
+  past session broken out set-by-set with total volume. Delete any session from there.
+
 ## Use it on your phone
 
 The easiest way — it's a single web page:
