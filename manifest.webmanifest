@@ -1,0 +1,24 @@
+{
+  "name": "Lift — Workout Log",
+  "short_name": "Lift",
+  "description": "A clean, offline gym workout logger with rest timer.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0b0f",
+  "theme_color": "#0b0b0f",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%230b0b0f'/%3E%3Cg fill='none' stroke='%235b8cff' stroke-width='12' stroke-linecap='round'%3E%3Cpath d='M52 76v40M140 76v40'/%3E%3Cpath d='M52 96h88'/%3E%3Cpath d='M36 84v24M156 84v24'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230b0b0f'/%3E%3Cg fill='none' stroke='%235b8cff' stroke-width='32' stroke-linecap='round'%3E%3Cpath d='M138 202v108M374 202v108'/%3E%3Cpath d='M138 256h236'/%3E%3Cpath d='M96 224v64M416 224v64'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
