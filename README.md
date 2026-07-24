@@ -35,8 +35,11 @@ so progressive overload is right in front of you.
 - **Exercise suggestions** — start typing and Lift suggests ~60 common lifts so you
   don't hand-type every name.
 - **Routines / workout days** — the **Routines** tab lets you group exercises into
-  days like "Push", "Pull", "Legs". Open a day and work through its exercises in
-  order; finishing one drops you back into the day for the next.
+  days like "Upper — Crunch Gym", "Lower — Chinatown Park". Each day card shows
+  **when you last did that workout**. Open a day and every exercise shows its
+  🏆 **best-ever set pinned on top**, plus your **last** session and the **time
+  before** — so a tired day never hides your real target. Work through the day's
+  exercises in order; finishing one drops you back into the day for the next.
 - **Rest timer that behaves** — keeps the screen awake while it counts down, and
   is **clock-based**, so it stays accurate even if you leave the app: phones freeze
   a web app's timers in the background, so Lift tracks the real end-time and, the

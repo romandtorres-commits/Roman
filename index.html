@@ -66,6 +66,17 @@
   .ex-badge .l{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
   .chev{width:18px;height:18px;color:var(--faint);flex-shrink:0;}
 
+  /* rich day-exercise card */
+  .ex-card.day-ex{align-items:center;}
+  .day-best{color:var(--gold);font-size:13px;font-weight:750;margin-top:6px;letter-spacing:-.01em;}
+  .day-hist{margin-top:9px;display:flex;flex-direction:column;gap:4px;}
+  .day-h-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;line-height:1.35;}
+  .day-h-row .d{color:var(--muted);flex-shrink:0;font-weight:600;}
+  .day-h-row .v{color:var(--text);font-weight:650;text-align:right;}
+  .day-h-row.prev .d,.day-h-row.prev .v{color:var(--faint);font-weight:500;}
+  .pn-lines{display:flex;flex-direction:column;gap:3px;}
+  .pn-best{color:var(--gold);}
+
   /* edit-mode card */
   .ex-card.editing{gap:10px;}
   .reorder{display:flex;flex-direction:column;gap:3px;flex-shrink:0;}
@@ -449,6 +460,24 @@
     return d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
   }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function fmtSessionSets(sess){ return sess.sets.map(s=>fmtWeight(s.weight)+"×"+s.reps).join(" · "); }
+  function routineLastDone(r){
+    let m=0; r.exerciseIds.forEach(id=>{ const e=data.exercises.find(x=>x.id===id); const l=e&&lastSession(e); if(l&&l.date>m) m=l.date; }); return m;
+  }
+  // Rich card body for an exercise inside a day: best-ever pinned on top, then last two sessions.
+  function dayExerciseCardHTML(ex){
+    const hist=ex.history||[], best=heaviestEver(ex);
+    const last=hist[hist.length-1], prev=hist[hist.length-2];
+    let h='<div class="ex-main"><div class="ex-name">'+escapeHtml(ex.name)+'</div>';
+    if(best) h+='<div class="day-best">🏆 Best '+fmtWeight(best.weight)+' '+unit()+' × '+best.reps+'</div>';
+    if(last){
+      h+='<div class="day-hist"><div class="day-h-row"><span class="d">Last · '+relDate(last.date)+'</span><span class="v">'+escapeHtml(fmtSessionSets(last))+'</span></div>';
+      if(prev) h+='<div class="day-h-row prev"><span class="d">Before · '+relDate(prev.date)+'</span><span class="v">'+escapeHtml(fmtSessionSets(prev))+'</span></div>';
+      h+='</div>';
+    } else { h+='<div class="ex-sub">Never logged — tap to start</div>'; }
+    h+='</div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+    return h;
+  }
   let toastT;
   function toast(msg,pr){ const t=$("toast"); t.textContent=msg; t.className="toast show"+(pr?" pr":""); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),pr?2600:1600); }
   function haptic(ms){ if(navigator.vibrate) navigator.vibrate(ms); }
@@ -558,8 +587,11 @@
     $("routines-empty").classList.toggle("hidden", data.routines.length!==0);
     data.routines.forEach(r=>{
       const names=r.exerciseIds.map(id=>{ const e=data.exercises.find(x=>x.id===id); return e?e.name:null; }).filter(Boolean);
+      const done=routineLastDone(r);
       const card=document.createElement("button"); card.className="ex-card";
-      card.innerHTML='<div class="ex-main"><div class="ex-name"></div><div class="ex-sub"><span class="s"></span></div></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+      card.innerHTML='<div class="ex-main"><div class="ex-name"></div><div class="ex-sub"><span class="s"></span></div></div>'+
+        (done?'<div class="ex-badge"><div class="l" style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--muted)">last done</div><div class="w" style="font-size:14px;font-weight:700;margin-top:2px">'+relDate(done)+'</div></div>':'')+
+        '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
       card.querySelector(".ex-name").textContent=r.name;
       card.querySelector(".s").textContent = names.length ? names.length+" exercise"+(names.length>1?"s":"")+" · "+names.slice(0,3).join(", ")+(names.length>3?"…":"") : "Empty — tap to add exercises";
       card.addEventListener("click",()=>openRoutine(r.id));
@@ -596,13 +628,8 @@
         card.querySelector(".ex-del").addEventListener("click",()=>{ r.exerciseIds.splice(pos,1); save(); renderRoutine(); });
         list.appendChild(card);
       } else {
-        const last=lastSession(ex), best=bestSet(last);
-        const card=document.createElement("button"); card.className="ex-card";
-        card.innerHTML='<div class="ex-main"><div class="ex-name"></div><div class="ex-sub"><span class="s"></span></div></div>'+
-          (best?'<div class="ex-badge"><div class="w">'+fmtWeight(best.weight)+'<span style="font-size:12px;color:var(--faint);font-weight:600"> '+unit()+'</span></div><div class="l">×'+best.reps+' best</div></div>':'')+
-          '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
-        card.querySelector(".ex-name").textContent=ex.name;
-        card.querySelector(".s").textContent = last ? "Last "+relDate(last.date) : "Never logged";
+        const card=document.createElement("button"); card.className="ex-card day-ex";
+        card.innerHTML=dayExerciseCardHTML(ex);
         card.addEventListener("click",()=>openWorkout(ex.id,r.id));
         list.appendChild(card);
       }
@@ -640,11 +667,13 @@
     $("w-name").textContent=current.name;
     $("back-label").textContent = (ret && ret!=="home") ? (currentRoutine?currentRoutine.name:"Back") : "Exercises";
 
-    const last=lastSession(current), note=$("prev-note");
+    const last=lastSession(current), note=$("prev-note"), best=heaviestEver(current);
     if(last){
-      const setStr=last.sets.map(s=>fmtWeight(s.weight)+"×"+s.reps).join("  ·  ");
+      const setStr=escapeHtml(fmtSessionSets(last));
       note.classList.remove("hidden");
-      note.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg><div>Last time <b>'+relDate(last.date)+'</b>: '+escapeHtml(setStr)+'</div>';
+      note.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg><div class="pn-lines">'+
+        (best?'<div class="pn-best">🏆 Best <b>'+fmtWeight(best.weight)+' '+unit()+' × '+best.reps+'</b></div>':'')+
+        '<div>Last <b>'+relDate(last.date)+'</b>: '+setStr+'</div></div>';
       $("in-weight").value=last.sets[0].weight; $("in-reps").value=last.sets[0].reps;
     } else { note.classList.add("hidden"); $("in-weight").value=""; $("in-reps").value=""; }
     exitSetEdit(); renderSets();
