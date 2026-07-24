@@ -28,8 +28,11 @@ so progressive overload is right in front of you.
   see your **heaviest set** and **estimated 1-rep-max**, a line chart of your top-set
   weight over time (with all-time gain), plus every past session broken out
   set-by-set with total volume. Delete any session from there.
-- **Personal records** — beat your best estimated 1RM and you get a 🏆 **New PR!**
-  toast when you finish, and a trophy on the record-setting set.
+- **"Best" = best estimated 1-rep-max** — everywhere Lift shows your best (day view,
+  logging screen, exercise badges, history, chart) it ranks by estimated 1RM (Epley),
+  so a strong set of 135×10 outranks a grindy 145×3. Beat your best 1RM and you get a
+  🏆 **New PR!** toast on finish, and a trophy on the record set. History also shows
+  your heaviest single set as a secondary stat.
 - **Edit anything** — tap a logged set to fix its weight/reps; in **Edit** mode
   (top-right of the exercises list) rename, reorder, or delete exercises.
 - **Exercise suggestions** — start typing and Lift suggests ~60 common lifts so you

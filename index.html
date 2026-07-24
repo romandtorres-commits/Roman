@@ -69,6 +69,7 @@
   /* rich day-exercise card */
   .ex-card.day-ex{align-items:center;}
   .day-best{color:var(--gold);font-size:13px;font-weight:750;margin-top:6px;letter-spacing:-.01em;}
+  .day-best .e1{color:var(--faint);font-weight:600;}
   .day-hist{margin-top:9px;display:flex;flex-direction:column;gap:4px;}
   .day-h-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;line-height:1.35;}
   .day-h-row .d{color:var(--muted);flex-shrink:0;font-weight:600;}
@@ -452,6 +453,11 @@
   function heaviestEver(ex){
     let best=null; (ex.history||[]).forEach(s=>s.sets.forEach(st=>{ if(!best||st.weight>best.weight) best=st; })); return best;
   }
+  // The set with the highest estimated 1-rep-max across all history (rewards heavier reps too).
+  function bestByE1RM(ex){
+    let bs=null, bv=0; (ex.history||[]).forEach(s=>s.sets.forEach(st=>{ const v=e1rm(st.weight,st.reps); if(v>bv){ bv=v; bs=st; } })); return bs?{set:bs,val:bv}:null;
+  }
+  function sessionBestE1RM(sess){ return Math.round(Math.max.apply(null, sess.sets.map(s=>e1rm(s.weight,s.reps)))*10)/10; }
   function relDate(ts){
     const d=new Date(ts), now=new Date();
     const days=Math.floor((now.setHours(0,0,0,0)-new Date(ts).setHours(0,0,0,0))/86400000);
@@ -466,10 +472,10 @@
   }
   // Rich card body for an exercise inside a day: best-ever pinned on top, then last two sessions.
   function dayExerciseCardHTML(ex){
-    const hist=ex.history||[], best=heaviestEver(ex);
+    const hist=ex.history||[], best=bestByE1RM(ex);
     const last=hist[hist.length-1], prev=hist[hist.length-2];
     let h='<div class="ex-main"><div class="ex-name">'+escapeHtml(ex.name)+'</div>';
-    if(best) h+='<div class="day-best">🏆 Best '+fmtWeight(best.weight)+' '+unit()+' × '+best.reps+'</div>';
+    if(best) h+='<div class="day-best">🏆 Best '+fmtWeight(best.set.weight)+' '+unit()+' × '+best.set.reps+' <span class="e1">· 1RM ~'+fmtWeight(best.val)+'</span></div>';
     if(last){
       h+='<div class="day-hist"><div class="day-h-row"><span class="d">Last · '+relDate(last.date)+'</span><span class="v">'+escapeHtml(fmtSessionSets(last))+'</span></div>';
       if(prev) h+='<div class="day-h-row prev"><span class="d">Before · '+relDate(prev.date)+'</span><span class="v">'+escapeHtml(fmtSessionSets(prev))+'</span></div>';
@@ -529,13 +535,13 @@
         card.querySelector(".ex-del").addEventListener("click",()=>deleteExercise(ex));
         list.appendChild(card);
       } else {
-        const last=lastSession(ex), best=bestSet(last);
+        const last=lastSession(ex), best=bestByE1RM(ex);
         const card=document.createElement("button");
         card.className="ex-card";
         let sub = last ? "Last "+relDate(last.date)+" · "+last.sets.length+" set"+(last.sets.length>1?"s":"") : "Never logged — tap to start";
         card.innerHTML=
           '<div class="ex-main"><div class="ex-name"></div><div class="ex-sub"><span class="s"></span></div></div>'+
-          (best?'<div class="ex-badge"><div class="w">'+fmtWeight(best.weight)+'<span style="font-size:12px;color:var(--faint);font-weight:600"> '+unit()+'</span></div><div class="l">×'+best.reps+' best</div></div>':'')+
+          (best?'<div class="ex-badge"><div class="w">'+fmtWeight(best.set.weight)+'<span style="font-size:12px;color:var(--faint);font-weight:600"> '+unit()+'</span></div><div class="l">×'+best.set.reps+' best</div></div>':'')+
           '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
         card.querySelector(".ex-name").textContent=ex.name;
         card.querySelector(".s").textContent=sub;
@@ -667,12 +673,12 @@
     $("w-name").textContent=current.name;
     $("back-label").textContent = (ret && ret!=="home") ? (currentRoutine?currentRoutine.name:"Back") : "Exercises";
 
-    const last=lastSession(current), note=$("prev-note"), best=heaviestEver(current);
+    const last=lastSession(current), note=$("prev-note"), best=bestByE1RM(current);
     if(last){
       const setStr=escapeHtml(fmtSessionSets(last));
       note.classList.remove("hidden");
       note.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg><div class="pn-lines">'+
-        (best?'<div class="pn-best">🏆 Best <b>'+fmtWeight(best.weight)+' '+unit()+' × '+best.reps+'</b></div>':'')+
+        (best?'<div class="pn-best">🏆 Best <b>'+fmtWeight(best.set.weight)+' '+unit()+' × '+best.set.reps+'</b> · 1RM ~'+fmtWeight(best.val)+'</div>':'')+
         '<div>Last <b>'+relDate(last.date)+'</b>: '+setStr+'</div></div>';
       $("in-weight").value=last.sets[0].weight; $("in-reps").value=last.sets[0].reps;
     } else { note.classList.add("hidden"); $("in-weight").value=""; $("in-reps").value=""; }
@@ -767,12 +773,12 @@
     $("h-name").textContent=current.name;
     $("h-sub").textContent=hist.length+" session"+(hist.length>1?"s":"")+" logged";
 
-    const heavy=heaviestEver(current), best1rm=bestE1RM(current);
+    const heavy=heaviestEver(current), bE=bestByE1RM(current);
     $("h-stats").innerHTML='<div class="stats">'+
-      '<div class="stat"><div class="k">Heaviest set</div><div class="v">'+(heavy?fmtWeight(heavy.weight)+'<small> '+unit()+' ×'+heavy.reps+'</small>':'—')+'</div></div>'+
-      '<div class="stat"><div class="k">Est. 1RM</div><div class="v">'+(best1rm?fmtWeight(best1rm)+'<small> '+unit()+'</small>':'—')+'</div></div></div>';
+      '<div class="stat"><div class="k">Best est. 1RM</div><div class="v">'+(bE?fmtWeight(bE.val)+'<small> '+unit()+' · from '+fmtWeight(bE.set.weight)+'×'+bE.set.reps+'</small>':'—')+'</div></div>'+
+      '<div class="stat"><div class="k">Heaviest set</div><div class="v">'+(heavy?fmtWeight(heavy.weight)+'<small> '+unit()+' ×'+heavy.reps+'</small>':'—')+'</div></div></div>';
 
-    const pts=hist.map(s=>({t:s.date,w:bestSet(s).weight}));
+    const pts=hist.map(s=>({t:s.date,w:sessionBestE1RM(s)}));
     $("h-chart-wrap").innerHTML = pts.length>=2 ? chartHTML(pts) : '';
 
     const list=$("h-list"); list.innerHTML="";
@@ -801,7 +807,7 @@
     const first=pts[0].w,last=pts[pts.length-1].w,diff=last-first;
     const dCls=diff>0?"up":diff<0?"down":"flat";
     const dTxt=(diff>0?"↑ +":diff<0?"↓ ":"→ ")+fmtWeight(Math.abs(diff))+" "+unit()+(diff!==0?" all-time":" no change");
-    return '<div class="chart-card"><div class="chart-head"><span class="lab">Top set · '+unit()+'</span><span class="delta '+dCls+'">'+dTxt+'</span></div>'+
+    return '<div class="chart-card"><div class="chart-head"><span class="lab">Est. 1RM · '+unit()+'</span><span class="delta '+dCls+'">'+dTxt+'</span></div>'+
       '<div class="chart"><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+grid+ylabels+
       '<path class="line" d="'+line+'"/>'+dots+
       '<text class="xl" x="'+x(0)+'" y="'+(H-6)+'" text-anchor="start">'+relDate(pts[0].t)+'</text>'+
