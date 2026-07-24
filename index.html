@@ -420,7 +420,7 @@
   let workoutReturn = "home";   // "home" | routineId
   let currentRoutine = null;    // active routine object
   let routineEdit = false;
-  let restTimer = null, restRemaining = 0, restTotal = 0, wakeLock = null;
+  let restTimer = null, restTotal = 0, restEndAt = 0, restFinished = false, wakeLock = null;
   const RING = 2 * Math.PI * 120;
 
   const $ = id => document.getElementById(id);
@@ -786,27 +786,35 @@
   function maybeAskNotify(){ try{ if("Notification" in window && Notification.permission==="default") Notification.requestPermission(); }catch(e){} }
   function notifyDone(){ try{ if("Notification" in window && Notification.permission==="granted" && document.hidden) new Notification("Rest over 💪",{body:"Time for your next set"}); }catch(e){} }
 
+  // Clock-based: we track the absolute end time and always derive "remaining"
+  // from Date.now(). Backgrounding the app freezes JS/intervals, but the wall
+  // clock keeps moving, so the timer stays correct across app switches.
+  function restRemainingSec(){ return Math.max(0, Math.round((restEndAt - Date.now())/1000)); }
   function startRest(){
     maybeAskNotify(); reqWake();
-    restTotal=data.settings.rest; restRemaining=restTotal;
+    restTotal=data.settings.rest;
     if(restTotal<=0){ return; }
+    restEndAt=Date.now()+restTotal*1000; restFinished=false;
     $("rest").classList.add("show"); $("ring-fg").style.strokeDasharray=RING;
     tickRest(true); runRestInterval();
   }
   function runRestInterval(){
     clearInterval(restTimer);
-    restTimer=setInterval(()=>{ restRemaining--; tickRest(false); if(restRemaining<=0){ clearInterval(restTimer); restTimer=null; restDone(); } },1000);
+    // 250ms cadence so the display self-corrects almost instantly on return
+    restTimer=setInterval(()=>{ tickRest(false); if(restRemainingSec()<=0){ clearInterval(restTimer); restTimer=null; restDone(); } },250);
   }
   function tickRest(instant){
-    const el=$("rest-time");
-    if(restRemaining<=0){ el.innerHTML='<span class="done">Ready 💪</span>'; }
-    else{ const m=Math.floor(restRemaining/60),s=restRemaining%60; el.className="t"; el.textContent=(m>0?m:"0")+":"+String(s).padStart(2,"0"); }
-    const frac=restTotal>0?Math.max(0,restRemaining)/restTotal:0, ring=$("ring-fg");
+    const rem=restRemainingSec(), el=$("rest-time");
+    if(rem<=0){ el.innerHTML='<span class="done">Ready 💪</span>'; }
+    else{ const m=Math.floor(rem/60),s=rem%60; el.className="t"; el.textContent=(m>0?m:"0")+":"+String(s).padStart(2,"0"); }
+    const frac=restTotal>0?rem/restTotal:0, ring=$("ring-fg");
     if(instant) ring.style.transition="none";
     ring.style.strokeDashoffset=RING*(1-frac);
     if(instant){ ring.getBoundingClientRect(); ring.style.transition=""; }
   }
   function restDone(){
+    if(restFinished) return; restFinished=true;
+    clearInterval(restTimer); restTimer=null;
     haptic([200,80,200]); notifyDone(); relWake();
     $("rest-time").innerHTML='<span class="done">Ready 💪</span>'; $("ring-fg").style.strokeDashoffset=RING;
     try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(),o=ctx.createOscillator(),g=ctx.createGain();
@@ -814,12 +822,16 @@
       g.gain.setValueAtTime(.001,ctx.currentTime); g.gain.exponentialRampToValueAtTime(.3,ctx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.5);
       o.start(); o.stop(ctx.currentTime+.5);
     }catch(e){}
-    setTimeout(()=>{ if(restRemaining<=0) stopRest(); },1500);
+    setTimeout(()=>{ if(restRemainingSec()<=0) stopRest(); },1800);
   }
-  function stopRest(){ clearInterval(restTimer); restTimer=null; relWake(); $("rest").classList.remove("show"); }
+  function stopRest(){ clearInterval(restTimer); restTimer=null; restFinished=true; relWake(); $("rest").classList.remove("show"); }
   function adjustRest(sec){
-    restRemaining=Math.max(0,restRemaining+sec); restTotal=Math.max(restTotal,restRemaining);
-    if(!restTimer && restRemaining>0){ $("rest").classList.add("show"); tickRest(false); runRestInterval(); } else tickRest(false);
+    const now=Date.now();
+    const base = restEndAt>now ? restEndAt : now;   // extend from now if already elapsed
+    restEndAt = Math.max(now, base + sec*1000);
+    const rem=restRemainingSec(); restTotal=Math.max(restTotal,rem); restFinished=false;
+    if(rem>0){ $("rest").classList.add("show"); if(!restTimer) runRestInterval(); reqWake(); }
+    tickRest(false);
   }
 
   /* ---------- Generic input sheet ---------- */
@@ -922,7 +934,16 @@
     el.value=field==="weight"?fmtWeight(v):v; haptic(8);
   }
   // re-acquire wake lock if page becomes visible again during rest
-  document.addEventListener("visibilitychange",()=>{ if(!document.hidden && restTimer) reqWake(); });
+  // On returning to the app, immediately reconcile the timer with the real clock:
+  // show the correct remaining time, or fire "done" if it elapsed while away.
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden) return;
+    if($("rest").classList.contains("show") && !restFinished){
+      reqWake();
+      if(restRemainingSec()<=0) restDone();
+      else { tickRest(true); if(!restTimer) runRestInterval(); }
+    }
+  });
 
   /* ---------- Init ---------- */
   renderUnitChip(); setTab("ex");

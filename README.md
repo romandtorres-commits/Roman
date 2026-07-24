@@ -38,7 +38,13 @@ so progressive overload is right in front of you.
   days like "Push", "Pull", "Legs". Open a day and work through its exercises in
   order; finishing one drops you back into the day for the next.
 - **Rest timer that behaves** — keeps the screen awake while it counts down, and
-  (if you allow notifications) buzzes you even if you've switched apps.
+  is **clock-based**, so it stays accurate even if you leave the app: phones freeze
+  a web app's timers in the background, so Lift tracks the real end-time and, the
+  moment you return, shows the correct time left (or fires the "done" beep if it
+  already finished while you were away). If you allow notifications it also buzzes
+  you when the screen is off. *(Note: on iPhone, web apps can't reliably fire an
+  alert while fully in the background — the beep/vibrate lands as soon as you
+  reopen Lift.)*
 - **Backup & restore** — the ⚙︎ settings sheet has **Export** (downloads all your
   data as a `.json` file) and **Import** (restore it, or move to a new phone). Also
   set your default rest time there.
